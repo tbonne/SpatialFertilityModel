@@ -10,6 +10,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import repast.simphony.space.graph.Network;
+import repast.simphony.space.graph.RepastEdge;
+
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.index.quadtree.Quadtree;
+
+
+
 
 /*
  * 
@@ -21,7 +30,7 @@ import java.util.concurrent.Future;
 
 
 public class Executor {
-	
+
 	private static final int pThreads = Params.numThreads;
 	private static ExecutorService executor;
 
@@ -33,7 +42,7 @@ public class Executor {
 
 	public static void processNodes(){
 
-		
+
 		Collection<Callable<Void>> tasks_inputs = new ArrayList<Callable<Void>>();
 		for (Node n:ModelSetup.allNodes){
 			Runnable worker = new Runnable_Node(n);
@@ -52,31 +61,49 @@ public class Executor {
 			e.printStackTrace();
 		}
 	}
-	
-	
+
+
 	public static void updateNodes(){
 
-		
-		Collection<Callable<Void>> tasks_inputs = new ArrayList<Callable<Void>>();
+		ArrayList<Node> toBeRemoved = new ArrayList<Node>();
+		Network net = ModelSetup.getNetwork();
+
 		for (Node n:ModelSetup.allNodes){
-			Runnable worker = new Runnable_Node_Update(n);
-			tasks_inputs.add(Executors.callable(worker,(Void)null));
+			if(n.dead==1)toBeRemoved.add(n);
 		}
 
-		try {
-			for (Future<?> f : executor.invokeAll(tasks_inputs)) { //invokeAll() blocks until ALL tasks submitted to executor complete
-				f.get(); 
+		for(Node n:toBeRemoved){
+			ModelSetup.allNodes.remove(n);
+			ModelSetup.getContext().remove(n);
+			Iterable<RepastEdge> it = net.getEdges(n);
+			if(it!=null){
+				if(it.iterator().hasNext()){
+					for(RepastEdge re : it ){
+						net.removeEdge(re);	
+					}
+				}
 			}
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		} catch (ExecutionException e) {
-			e.printStackTrace();
-		}catch (NullPointerException e){
-			e.printStackTrace();
+
 		}
+
+
+
 	}
-	
-	
+
+	public static void processSpace(){
+		Quadtree spaceEnv = new Quadtree();
+		for (Node n:ModelSetup.allNodes){
+			Envelope pointenv = new Envelope();
+			pointenv.init(n.getCoord());
+			pointenv.expandBy(1);
+			spaceEnv.insert(pointenv, n);
+		}
+
+		ModelSetup.setQuadtree(spaceEnv);
+
+	}
+
+
 	public void shutdown(){
 		executor.shutdown();
 	}

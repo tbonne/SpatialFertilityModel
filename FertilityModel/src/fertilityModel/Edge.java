@@ -10,11 +10,10 @@ public class Edge extends RepastEdge{
 	double length=0;
 	
 	
-	public Edge(int id, Node s, Node e,boolean directed,double weight){
+	public Edge(Node s, Node e,boolean directed,double weight){
 		
 		super(s, e, directed, weight);
 		
-		ID = id;
 		start = s;
 		end = e;
 		length=s.getCoord().distance(e.getCoord());

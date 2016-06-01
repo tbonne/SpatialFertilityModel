@@ -1,9 +1,9 @@
 <repast.simphony.chart2.engine.HistogramChartDescriptor>
   <name>AgeHist</name>
   <dataSet>Histogram</dataSet>
-  <xAxisLabel>Desired Age</xAxisLabel>
+  <xAxisLabel>Desired fertility</xAxisLabel>
   <yAxisLabel>Frequency</yAxisLabel>
-  <chartTitle>Histogram of desired age of first birth</chartTitle>
+  <chartTitle>Histogram of desired fertility</chartTitle>
   <type>HISTOGRAM</type>
   <background>
     <red>192</red>
@@ -21,7 +21,7 @@
   <showLegend>true</showLegend>
   <histType>STATIC</histType>
   <binCount>5</binCount>
-  <sourceId>Desired_age</sourceId>
+  <sourceId>Desired_Fertility</sourceId>
   <outOfRange>ADD</outOfRange>
   <min>0.0</min>
   <max>50.0</max>

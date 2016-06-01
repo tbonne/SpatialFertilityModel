@@ -12,7 +12,7 @@ Node node;
 	public void run(){
 		Throwable thrown = null;
 	    try {
-		node.updateDAges();
+		node.step();
 	    } catch (Throwable e) {
 	        thrown = e;
 	        System.out.println("Problem lies in node update code" + thrown);
