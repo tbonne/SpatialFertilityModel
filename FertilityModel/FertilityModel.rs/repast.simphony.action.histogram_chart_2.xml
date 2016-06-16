@@ -20,11 +20,11 @@
   <showGrid>true</showGrid>
   <showLegend>true</showLegend>
   <histType>STATIC</histType>
-  <binCount>5</binCount>
+  <binCount>10</binCount>
   <sourceId>Desired_Fertility</sourceId>
   <outOfRange>ADD</outOfRange>
   <min>0.0</min>
-  <max>50.0</max>
+  <max>10.0</max>
   <barColor>
     <red>255</red>
     <green>0</green>

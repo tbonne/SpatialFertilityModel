@@ -18,14 +18,11 @@ import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.index.quadtree.Quadtree;
 
 
-
-
 /*
  * 
  * This class controls the multithreading processes, breaking the model up into 3 seperate multithreaded sequences:
  * 			1) Nodes
  * 			2) Edges
- * 			3) Pulses
  */
 
 
@@ -39,12 +36,13 @@ public class Executor {
 	}
 
 	//synchronous scheduling
-
 	public static void processNodes(){
 
-
+		
 		Collection<Callable<Void>> tasks_inputs = new ArrayList<Callable<Void>>();
-		for (Node n:ModelSetup.allNodes){
+		ArrayList<Node> allNodesIn = ModelSetup.allNodes;
+		Collections.shuffle(allNodesIn);
+		for (Node n:allNodesIn){
 			Runnable worker = new Runnable_Node(n);
 			tasks_inputs.add(Executors.callable(worker,(Void)null));
 		}
@@ -60,31 +58,44 @@ public class Executor {
 		}catch (NullPointerException e){
 			e.printStackTrace();
 		}
+		/*
+		ArrayList<Node> allNodesIn = ModelSetup.getAllNodes();
+		Collections.shuffle(allNodesIn);
+		for (Node n:allNodesIn){
+			n.step();
+		}*/
 	}
 
 
 	public static void updateNodes(){
 
+		
 		ArrayList<Node> toBeRemoved = new ArrayList<Node>();
 		Network net = ModelSetup.getNetwork();
+		
 
 		for (Node n:ModelSetup.allNodes){
 			if(n.dead==1)toBeRemoved.add(n);
 		}
 
+		
 		for(Node n:toBeRemoved){
 			ModelSetup.allNodes.remove(n);
 			ModelSetup.getContext().remove(n);
-			Iterable<RepastEdge> it = net.getEdges(n);
+			/*Iterable<RepastEdge> it = net.getEdges(n);
 			if(it!=null){
 				if(it.iterator().hasNext()){
 					for(RepastEdge re : it ){
 						net.removeEdge(re);	
 					}
 				}
-			}
+			}*/
 
 		}
+		
+	//	System.gc();
+		
+		
 
 
 

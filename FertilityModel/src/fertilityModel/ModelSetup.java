@@ -86,12 +86,16 @@ public class ModelSetup implements ContextBuilder<Object>{
 
 		System.out.println("adding nodes"); //altering this to be a network space might be best ... no /error for gis visualization...manual
 		
-		Coordinate groupCoord = new Coordinate(RandomHelper.nextDoubleFromTo((0),(landSize)), RandomHelper.nextDoubleFromTo(0,(landSize)));
+		//Coordinate groupCoord = new Coordinate(RandomHelper.nextDoubleFromTo((0),(landSize)), RandomHelper.nextDoubleFromTo(0,(landSize)));
+		Coordinate groupCoord = new Coordinate((landSize)/2.0, (landSize)/2.0);
 
 		for (int j = 0; j < nodeSize; j++){
 
 			//add node
 			Coordinate coord = new Coordinate(RandomHelper.nextDoubleFromTo(groupCoord.x+(-Params.maxSocialDistance),(Params.maxSocialDistance)), groupCoord.y+RandomHelper.nextDoubleFromTo(-Params.maxSocialDistance,(Params.maxSocialDistance)));
+			while(coord.x<0 || coord.y<0 || coord.x>this.landSize || coord.y>this.landSize){
+				coord = new Coordinate(groupCoord.x+RandomHelper.nextDoubleFromTo((-Params.maxSocialDistance),(Params.maxSocialDistance)), groupCoord.y+RandomHelper.nextDoubleFromTo(-Params.maxSocialDistance,(Params.maxSocialDistance)));
+			}
 			Node node = new Node(context,space,coord,globalNet);
 			allNodes.add(node);
 			context.add(node);
@@ -149,16 +153,7 @@ public class ModelSetup implements ContextBuilder<Object>{
 	}
 
 
-	public static  Iterable<Node> getObjectsWithin(Coordinate coord,double radius, Class clazz){
-		Envelope envelope = new Envelope();
-		envelope.init(coord);
-		envelope.expandBy(radius);
-		Iterable<Node> objectsInArea = ModelSetup.getGeog().getObjectsWithin(envelope,clazz);
-		envelope.setToNull();
 
-		//if(objectsInArea.iterator().hasNext()==false)System.out.println("warning no objects found of class: "+ clazz.toString());
-		return objectsInArea;
-	}
 
 	public static Context getContext(){
 		return mainContext;
