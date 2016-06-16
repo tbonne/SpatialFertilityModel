@@ -15,16 +15,24 @@ import org.java.plugin.Plugin;
 
 import repast.simphony.context.Context;
 import repast.simphony.engine.environment.RunEnvironment;
+import repast.simphony.engine.schedule.IAction;
+import repast.simphony.engine.schedule.ISchedule;
+import repast.simphony.engine.schedule.ScheduleParameters;
 import repast.simphony.parameter.Parameters;
 import repast.simphony.random.RandomHelper;
 import repast.simphony.space.continuous.ContinuousSpace;
+import repast.simphony.space.gis.Geography;
 import repast.simphony.space.graph.Network;
 import repast.simphony.space.graph.RepastEdge;
 import repast.simphony.space.graph.ShortestPath;
+import repast.simphony.util.ContextUtils;
 
 import com.sun.media.sound.ModelDestination;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.Point;
 
 public class Node {  
 
@@ -38,15 +46,18 @@ public class Node {
 	Network network;
 	int timeSinceLastBirth,age_FirstBirth,numbChild;
 	ArrayList<Node> kinList;
-	List<RepastEdge> myEdges;
+	List<Edge> myEdges;
 	List<Node> myNeighs;
 	int dead ;
+	GeometryFactory fac = new GeometryFactory();
+	Geography myGeog;
+	
 
 
 	/***********************************************************Constructors ****************************************************************/
 
 	//Initial population
-	public Node(Context cont,ContinuousSpace <Object > space, Coordinate coordinate,Network net) {
+	public Node(Context cont,ContinuousSpace <Object > space, Coordinate coordinate,Network net, Geography geog) {
 		context =cont;
 		dead=0;
 
@@ -54,7 +65,7 @@ public class Node {
 		timeSinceLastBirth=0;
 		network=net;
 		age=0;
-		desired_Fertility = RandomHelper.nextDouble()*3;
+		desired_Fertility = RandomHelper.nextDouble()*5;
 		desired_ageFirstBirth = RandomHelper.nextDoubleFromTo(16, 35); 
 		coord = coordinate;
 		this.space=space;
@@ -70,10 +81,15 @@ public class Node {
 		kinList = new ArrayList<Node>();
 		myEdges = null;
 		myNeighs= null;
+		myGeog = geog;
+		
+		context.add(this);
+		//Point geom = fac.createPoint(this.getCoord());
+		//myGeog.move(this,geom);
 	}
 
 	//population born during simulation
-	public Node(Context cont,ContinuousSpace <Object > space, Coordinate coordinate,Network net,Node motherNode) {
+	public Node(Context cont,ContinuousSpace <Object > space, Coordinate coordinate,Network net,Node motherNode, Geography geog) {
 		context = cont;
 		children = 0;
 		timeSinceLastBirth=0;
@@ -88,7 +104,7 @@ public class Node {
 		freeTime=1;
 		workTime=0;
 		careTime=0;
-		workLifeBalance=Math.min(Math.max(motherNode.workLifeBalance+RandomHelper.nextDoubleFromTo(-Params.workLifeBalanceVar, Params.workLifeBalanceVar),0),1);
+		workLifeBalance=Math.min(Math.max(motherNode.workLifeBalance+(RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift),0),1);
 		mWealth=0;
 		workToWealthEfficiency = Params.workToWealthEfficiency;
 
@@ -96,6 +112,24 @@ public class Node {
 		kinList.add(motherNode);
 		myEdges = null;
 		myNeighs= null;
+		myGeog = geog;
+		
+		context.add(this);
+		//Point geom = fac.createPoint(this.getCoord());
+		//myGeog.move(this,geom);
+	}
+	
+	public Node (boolean remove){
+		ISchedule schedule = RunEnvironment.getInstance().getCurrentSchedule();
+		ScheduleParameters parms = ScheduleParameters.createOneTime(0,ScheduleParameters.FIRST_PRIORITY);
+		
+		schedule.schedule(parms, new IAction(){
+			@Override
+			public void execute() {
+				Context context = ContextUtils.getContext(Node.this);
+				context.remove(Node.this);
+			}
+		});
 	}
 
 
@@ -104,7 +138,7 @@ public class Node {
 	public void step(){
 
 		//System.out.println(this.toString()+" "+age);
-		if(this.toString().contains("fertilityModel.Node@5513aff5")){
+		if(this.toString().contains("fertilityModel.Node@3deb9f8e")){
 			System.out.println("age checker "+age);
 		}
 
@@ -131,12 +165,11 @@ public class Node {
 			if(desired_Fertility>numbChild+1 && timeSinceLastBirth>=Params.minInterBirthPeriod){
 				numbChild++;
 				if(numbChild == 1)this.age_FirstBirth=this.age;
-				Node newNode = new Node(context, space,this.coord,network,this);
-				context.add(newNode);
+				Node newNode = new Node(context, space,this.coord,network,this,myGeog);
 				newNode.init();
 				ModelSetup.allNodes.add(newNode);
 				timeSinceLastBirth=0;
-				System.out.println("birth occured : "+desired_Fertility + "  "+ newNode.toString());
+				//System.out.println("birth occured : "+desired_Fertility + "  "+ newNode.toString());
 
 				
 			}
@@ -144,8 +177,7 @@ public class Node {
 			////random chance of a birth
 			if(RandomHelper.nextDouble()<Params.backgroundFertility && timeSinceLastBirth>=Params.minInterBirthPeriod){
 				numbChild++;
-				Node newNode = new Node(context, space,this.coord,network,this);
-				context.add(newNode);
+				Node newNode = new Node(context, space,this.coord,network,this,myGeog);
 				newNode.init();
 				ModelSetup.allNodes.add(newNode);
 				timeSinceLastBirth=0;
@@ -156,7 +188,10 @@ public class Node {
 		}
 
 		//finalize node for next step
-		if(age>Params.maxAge)dead=1;
+		if(age>Params.maxAge){
+			dead=1;
+			myEdges = IteratorUtils.toList(network.getEdges(this).iterator());
+		}
 		if(age>Params.ageSocial)trimSocialTies();
 
 	}
@@ -262,10 +297,15 @@ public class Node {
 
 				//2. allocate random amount of social time to this neighbour
 				if(indSelected!=null){
-					network.addEdge(this, indSelected, choosenTimeA);
+					Edge re = new Edge(this, indSelected,true, choosenTimeA);
+					context.add(re);
+					network.addEdge(re);
+					Coordinate[] coords = { ((Node)re.getSource()).getCoord(),((Node)re.getTarget()).getCoord()};
+					LineString line = fac.createLineString(coords);
+					myGeog.move(re,line);
 				} else if (myEdges.size()>0){
 					Collections.shuffle(myEdges);
-					myEdges.get(0).setWeight(myEdges.get(0).getWeight()+choosenTimeA);
+					myEdges.get(0).setWeight(myEdges.get(0).getWeight()+choosenTimeA); 
 				} else {
 					//nothing no suitable neigh...
 				}
@@ -341,7 +381,7 @@ public class Node {
 		}
 
 		//drift
-		double drift = (RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift_fertility);
+		double drift = (RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift);
 
 		if(count>0){
 			localD = ((localD / (double)count));
@@ -371,7 +411,7 @@ public class Node {
 		ageF_norm = ageF_norm / (double)count;
 
 		//drift aspect
-		double drift = (RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift_ageOfFirstBirth);
+		double drift = (RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift);
 
 		//final desired age of first birth
 		if(count>0){
@@ -422,11 +462,14 @@ public class Node {
 	public int getAge_FirstBirth(){
 		return age_FirstBirth;
 	}
-	private List<RepastEdge> getMyEdgeList(){
+	private List<Edge> getMyEdgeList(){
 		return myEdges;
 	}
 	public double getDesiredAge_FirstBirth(){
 		return this.desired_ageFirstBirth;
+	}
+	public double getAge(){
+		return age;
 	}
 
 }

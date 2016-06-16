@@ -10,6 +10,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import repast.simphony.space.gis.DefaultGeography;
+import repast.simphony.space.gis.Geography;
 import repast.simphony.space.graph.Network;
 import repast.simphony.space.graph.RepastEdge;
 
@@ -73,6 +75,7 @@ public class Executor {
 		ArrayList<Node> toBeRemoved = new ArrayList<Node>();
 		Network net = ModelSetup.getNetwork();
 		
+		
 
 		for (Node n:ModelSetup.allNodes){
 			if(n.dead==1)toBeRemoved.add(n);
@@ -80,8 +83,14 @@ public class Executor {
 
 		
 		for(Node n:toBeRemoved){
+			
+			for(Edge e : n.myEdges){
+				ModelSetup.getContext().remove(e);
+			}
+			
 			ModelSetup.allNodes.remove(n);
 			ModelSetup.getContext().remove(n);
+			
 			/*Iterable<RepastEdge> it = net.getEdges(n);
 			if(it!=null){
 				if(it.iterator().hasNext()){

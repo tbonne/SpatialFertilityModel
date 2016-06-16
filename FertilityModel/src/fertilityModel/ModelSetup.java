@@ -28,6 +28,7 @@ import repast.simphony.space.continuous.RandomCartesianAdder;
 import repast.simphony.space.gis.Geography;
 import repast.simphony.space.gis.GeographyParameters;
 import repast.simphony.space.graph.Network;
+import repast.simphony.space.graph.RepastEdge;
 
 public class ModelSetup implements ContextBuilder<Object>{
 
@@ -59,7 +60,7 @@ public class ModelSetup implements ContextBuilder<Object>{
 		allEdges = new ArrayList<Edge>();
 		Params p = new Params();
 
-		nodeSize = p.numberOfNodes;
+		nodeSize = p.initalNodes;
 		landSize = p.landscapeSize;
 
 		System.out.println("Building geog");
@@ -94,14 +95,16 @@ public class ModelSetup implements ContextBuilder<Object>{
 			//add node
 			Coordinate coord = new Coordinate(RandomHelper.nextDoubleFromTo(groupCoord.x+(-Params.maxSocialDistance),(Params.maxSocialDistance)), groupCoord.y+RandomHelper.nextDoubleFromTo(-Params.maxSocialDistance,(Params.maxSocialDistance)));
 			while(coord.x<0 || coord.y<0 || coord.x>this.landSize || coord.y>this.landSize){
-				coord = new Coordinate(groupCoord.x+RandomHelper.nextDoubleFromTo((-Params.maxSocialDistance),(Params.maxSocialDistance)), groupCoord.y+RandomHelper.nextDoubleFromTo(-Params.maxSocialDistance,(Params.maxSocialDistance)));
+				coord = new Coordinate(groupCoord.x+RandomHelper.nextDoubleFromTo(-Params.maxSocialDistance,Params.maxSocialDistance), groupCoord.y+RandomHelper.nextDoubleFromTo(-Params.maxSocialDistance,(Params.maxSocialDistance)));
 			}
-			Node node = new Node(context,space,coord,globalNet);
+			Node node = new Node(context,space,coord,globalNet,geog);
 			allNodes.add(node);
-			context.add(node);
-			//Point geom = fac.createPoint(coord);
-			//geog.move(node,geom);
 			space.moveTo(node, coord.x,coord.y);
+			
+			//if(j==nodeSize-1){
+			//	context.remove(node);
+			///	allNodes.remove(node);
+			//}
 		}
 
 		/************************************
@@ -113,15 +116,50 @@ public class ModelSetup implements ContextBuilder<Object>{
 		
 		Network <Object > net = (Network <Object >)context.getProjection("infection network");
 
-		int nEdges = 0;
+		/*int nEdges = 0;
 		for(int i = 0;i<allNodes.size();i++){
 			Node nodeStart = allNodes.get(i);
 			//nEdges = ((Double)Params.numb_connections.sample()).intValue();
 			//IndividualConnection.setConnections(nEdges, nodeStart, context, net);
-			if(i>0)net.addEdge(nodeStart, allNodes.get(0));
+			if(i>0){
+				Edge re = new Edge(nodeStart, allNodes.get(0),true,0);
+				context.add(re);
+				net.addEdge(re);
+				//Coordinate[] coords = { ((Node)re.getSource()).getCoord(),((Node)re.getTarget()).getCoord()};
+				//LineString line = fac.createLineString(coords);
+				//geog.move(re,line);
+				
+			}
+		}*/
+		
+		int initalEdges = p.initialEdges;
+		while(initalEdges>0){
+			Collections.shuffle(allNodes);
+			Edge re = new Edge(allNodes.get(0), allNodes.get(1),true,0.8);
+			context.add(re);
+			net.addEdge(re);
+			initalEdges--;
 		}
+		
+		/*
+		//Bug with this version of repast... (https://sourceforge.net/p/repast/mailman/message/33492998/)
+		//edge removal
+		Edge diff = new Edge(true);
+		context.add(diff);
+		Coordinate coord = new Coordinate(0,0);
+		Point geom = fac.createPoint(coord);
+		geog.move(diff, geom);
 
+		//node removal
+		Node diff2 = new Node(true);
+		context.add(diff2);
+		Coordinate coordN = new Coordinate(0,0);
+		Point geomN = fac.createPoint(coordN);
+		geog.move(diff2, geomN);
+		*/
 
+		
+		
 		/************************************
 		 * 							        *
 		 * Scheduler to synchronize runs	*
