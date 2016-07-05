@@ -74,6 +74,7 @@ public class Executor {
 		
 		ArrayList<Node> toBeRemoved = new ArrayList<Node>();
 		Network net = ModelSetup.getNetwork();
+		//System.out.println("removing nodes");
 		
 		
 
@@ -83,11 +84,14 @@ public class Executor {
 
 		
 		for(Node n:toBeRemoved){
-			
-			for(Edge e : n.myEdges){
-				ModelSetup.getContext().remove(e);
+			try{
+				for(Edge e : n.myEdges){
+					ModelSetup.getContext().remove(e);
+				}
+			}catch(NullPointerException ee){
+				//no edges to remove
 			}
-			
+
 			ModelSetup.allNodes.remove(n);
 			ModelSetup.getContext().remove(n);
 			

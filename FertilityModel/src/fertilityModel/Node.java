@@ -46,12 +46,16 @@ public class Node {
 	Network network;
 	int timeSinceLastBirth,age_FirstBirth,numbChild;
 	ArrayList<Node> kinList;
+	ArrayList<Node> kidList;
 	List<Edge> myEdges;
 	List<Node> myNeighs;
+	List<Edge> outEdges;
+	List<Edge> inEdges;
+	ArrayList<Node> outNodes;
 	int dead ;
 	GeometryFactory fac = new GeometryFactory();
 	Geography myGeog;
-	
+
 
 
 	/***********************************************************Constructors ****************************************************************/
@@ -64,7 +68,7 @@ public class Node {
 		children = 0;
 		timeSinceLastBirth=0;
 		network=net;
-		age=0;
+		age=0;//RandomHelper.nextIntFromTo(0, Params.maxAge);
 		desired_Fertility = RandomHelper.nextDouble()*5;
 		desired_ageFirstBirth = RandomHelper.nextDoubleFromTo(16, 35); 
 		coord = coordinate;
@@ -79,10 +83,12 @@ public class Node {
 		workToWealthEfficiency = Params.workToWealthEfficiency;
 
 		kinList = new ArrayList<Node>();
+		kidList = new ArrayList<Node>();
 		myEdges = null;
 		myNeighs= null;
 		myGeog = geog;
-		
+		outNodes = new ArrayList<Node>();
+
 		context.add(this);
 		//Point geom = fac.createPoint(this.getCoord());
 		//myGeog.move(this,geom);
@@ -110,19 +116,22 @@ public class Node {
 
 		kinList = new ArrayList<Node>();
 		kinList.add(motherNode);
+		kidList = new ArrayList<Node>();
 		myEdges = null;
 		myNeighs= null;
 		myGeog = geog;
-		
+		outNodes = new ArrayList<Node>();
+
 		context.add(this);
 		//Point geom = fac.createPoint(this.getCoord());
 		//myGeog.move(this,geom);
 	}
-	
+
+	/*
 	public Node (boolean remove){
 		ISchedule schedule = RunEnvironment.getInstance().getCurrentSchedule();
 		ScheduleParameters parms = ScheduleParameters.createOneTime(0,ScheduleParameters.FIRST_PRIORITY);
-		
+
 		schedule.schedule(parms, new IAction(){
 			@Override
 			public void execute() {
@@ -131,6 +140,7 @@ public class Node {
 			}
 		});
 	}
+	 */
 
 
 	/***********************************************************each step ****************************************************************/
@@ -138,77 +148,98 @@ public class Node {
 	public void step(){
 
 		//System.out.println(this.toString()+" "+age);
-		if(this.toString().contains("fertilityModel.Node@3deb9f8e")){
+		if(this.toString().contains("fertilityModel.Node@30f5002e")){
 			System.out.println("age checker "+age);
 		}
+
+		//if(workLifeBalance<0.1){
+		//System.out.println("bewha checker "+age);
+		//}
+		//System.out.println("age checker "+this.toString()+"  age = "+age + "  "+ this.workLifeBalance);   
 
 		age++;
 		timeSinceLastBirth++;
 
 		//update my surroundings
-		myEdges = IteratorUtils.toList(network.getEdges(this).iterator());
 		myNeighs = IteratorUtils.toList(network.getAdjacent(this).iterator());
+		myEdges = IteratorUtils.toList(network.getEdges(this).iterator()); //can remove this ...?
+		inEdges = IteratorUtils.toList(network.getInEdges(this).iterator());
+		outEdges = IteratorUtils.toList(network.getOutEdges(this).iterator());
 
 		//allocate my time
-		allocateTime();
+		double childCareT = allocateTime();
 
-		//Desired Age of First Birth
-		if(numbChild==0 && age>=Params.ageSocial)desired_ageFirstBirth = calculateAgeFirstBirth(desired_ageFirstBirth);
+		//Update desired Age of First Birth and desired Fertility
+		if(age>=Params.ageSocial){
+			if(numbChild==0)desired_ageFirstBirth = calculateAgeFirstBirth(desired_ageFirstBirth);
+			desired_Fertility = calculateDesiredFertility(desired_Fertility, this.careTime); 
+			this.workLifeBalance = calculateWorkLifeBalance(this.workLifeBalance);
+		}
+
 
 		//make fertility choices
-		if(this.age>=desired_ageFirstBirth){
-
-			//Desired fertility
-			desired_Fertility = calculateDesiredFertility(desired_Fertility, this.careTime); 
+		if(this.age>=desired_ageFirstBirth && this.age<Params.maxAgeRepro){
 
 			////Is a new child born? (deterministic right now...)
-			if(desired_Fertility>numbChild+1 && timeSinceLastBirth>=Params.minInterBirthPeriod){
-				numbChild++;
-				if(numbChild == 1)this.age_FirstBirth=this.age;
-				Node newNode = new Node(context, space,this.coord,network,this,myGeog);
-				newNode.init();
-				ModelSetup.allNodes.add(newNode);
-				timeSinceLastBirth=0;
-				//System.out.println("birth occured : "+desired_Fertility + "  "+ newNode.toString());
+			if(desired_Fertility>numbChild+1 && timeSinceLastBirth>Params.minInterBirthPeriod ){
 
-				
+				if(checkTimeAvailability() ){
+					numbChild++;
+					if(numbChild>1){
+						//System.out.println("sss");
+					}
+					if(numbChild == 1)this.age_FirstBirth=this.age;
+					Node newNode = new Node(context, space,this.coord,network,this,myGeog);
+					newNode.init(this.coord);
+					ModelSetup.allNodes.add(newNode);
+					timeSinceLastBirth=0;
+					kidList.add(newNode);
+					//System.out.println("birth occured : "+desired_Fertility + "  "+ newNode.toString());
+
+					//else adjust until it is possible to meet desired fertility
+				} else{
+					this.workLifeBalance= Math.min(1,Math.max(this.workLifeBalance + RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift_work,0));
+					this.desired_Fertility=this.desired_Fertility-Params.desiredFertilityDecrease; 
+				}
 			}
 
 			////random chance of a birth
-			if(RandomHelper.nextDouble()<Params.backgroundFertility && timeSinceLastBirth>=Params.minInterBirthPeriod){
+			if(RandomHelper.nextDouble()<Params.backgroundFertility && timeSinceLastBirth>=Params.minInterBirthPeriod){ 
 				numbChild++;
 				Node newNode = new Node(context, space,this.coord,network,this,myGeog);
-				newNode.init();
+				newNode.init(this.coord);
 				ModelSetup.allNodes.add(newNode);
 				timeSinceLastBirth=0;
+				kidList.add(newNode);
 				//System.out.println("chance birth occurred : "+desired_Fertility);
 
 				if(numbChild == 1)this.age_FirstBirth=this.age;
 			}
 		}
 
+		//decay of social ties
+		if(age>Params.ageSocial)trimSocialTies();
+
 		//finalize node for next step
 		if(age>Params.maxAge){
 			dead=1;
 			myEdges = IteratorUtils.toList(network.getEdges(this).iterator());
 		}
-		if(age>Params.ageSocial)trimSocialTies();
-
 	}
 
 	/*****************************************methods**************************************************/
 
 
 
-	private void allocateTime(){
+	private double allocateTime(){
 
 		//only social time
-		if(this.age>Params.ageSocial && this.age<Params.ageWork){
+		if(this.age>=Params.ageSocial && this.age<Params.ageWork){
 
-			this.socialTime = 1;
+			this.careTime = calculateCareTime();
+			this.freeTime = Math.max(1 - this.careTime,0);
+			this.socialTime = this.freeTime;
 			this.workTime = 0;
-			this.careTime = 0;
-			this.freeTime = 1;
 
 			generateSupport(this.socialTime);
 
@@ -216,20 +247,22 @@ public class Node {
 		} else if (this.age>=Params.ageWork){
 
 			this.careTime = calculateCareTime();
-			this.freeTime = 1 - this.careTime;
+			this.freeTime = Math.max(1 - this.careTime,0);
 			this.socialTime = this.freeTime * this.workLifeBalance;
 			this.workTime = this.freeTime * (1-this.workLifeBalance);
 
-			generateSupport(this.socialTime);
+			if(this.socialTime>Params.socialDecrease)generateSupport(this.socialTime);
 			generateMWealth(this.workTime);
 
 		}
 
-		//if in crisis
-		if(this.careTime>Params.crisisT){
-			this.workLifeBalance= this.workLifeBalance + RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift_work;
-		}
+		return careTime;
 
+	}
+
+	private boolean checkTimeAvailability(){
+		if(calculateCareTimePlusONE()<0.5)return true;
+		return false;
 	}
 
 	private void generateSupport(double sTime){
@@ -237,78 +270,32 @@ public class Node {
 		//Divide social time to those in my social network
 		double timeA = sTime;
 
-		//how many edges do am i initiating?
-		int edgeSize = 0;
-		for(RepastEdge ee : this.getMyEdgeList()){
-			if(ee.getSource()==this)edgeSize++;
+		if(outEdges.size()>Params.maxSocialTies+1){
+			//System.out.println("some thing is up: age " + this.age);
 		}
-
 
 		while (timeA > 0){
 
-			double probTie = 1.0/(1.0+edgeSize);
-			int ages = this.age;
+			//calculate probability of forming new ties or strengthening old ones
+			double probTie = 1.0/(1.0+outEdges.size());
+			//if(outEdges.size()>Params.maxSocialTies)probTie=0;
 
+			//choose random proportion of total time
 			double choosenTimeA=0;
 			if(timeA>Params.minEdgeWeight+Params.timeResolution){
-				choosenTimeA = RandomHelper.nextDoubleFromTo(Params.minEdgeWeight, timeA);	
+				choosenTimeA = RandomHelper.nextDoubleFromTo(Params.socialDecrease, timeA);	
 			} else {
 				choosenTimeA = timeA;
 			}
 
-
+			//assign the proportion of time to a social tie
 			if(RandomHelper.nextDouble()>=probTie ){
-				//agent chooses to strengthen an existing time
-
-				if (myEdges.size()>0){
-					Collections.shuffle(myEdges);
-					myEdges.get(0).setWeight(myEdges.get(0).getWeight()+choosenTimeA);
-				}
-
+				//agent chooses to strengthen an existing tie (or reciprocate one)
+				reinforceExistingTie(choosenTimeA);
 
 			} else {
-				//agent chooses to create a new connection
-				edgeSize++;
-
-				//1.list all agents within specified social distance (Params.sdMax)
-				ArrayList<Node> nearMe = new ArrayList<Node>();
-				Envelope pointEnv = new Envelope();
-				pointEnv.init(this.getCoord());
-				pointEnv.expandBy(Params.maxSocialDistance);
-				java.util.List<Node> nodesNearMe = ModelSetup.getQuadtree().query(pointEnv);
-				for(Node n : nodesNearMe){
-					if(n.getCoord().distance(this.getCoord())<Params.maxSocialDistance && n!=this){
-						if(myNeighs.contains(n)==false){
-							nearMe.add(n);	
-						}
-
-					}
-				}
-
-				Collections.shuffle(nearMe);
-				Node indSelected = null; 
-				for(int i = 0; i<nearMe.size();i++){
-					Node potentialN = nearMe.get(i);
-					if( Math.abs(potentialN.age-this.age)<Params.ageDiffMax){
-						indSelected = potentialN;
-						break;
-					}
-				}
-
-				//2. allocate random amount of social time to this neighbour
-				if(indSelected!=null){
-					Edge re = new Edge(this, indSelected,true, choosenTimeA);
-					context.add(re);
-					network.addEdge(re);
-					Coordinate[] coords = { ((Node)re.getSource()).getCoord(),((Node)re.getTarget()).getCoord()};
-					LineString line = fac.createLineString(coords);
-					myGeog.move(re,line);
-				} else if (myEdges.size()>0){
-					Collections.shuffle(myEdges);
-					myEdges.get(0).setWeight(myEdges.get(0).getWeight()+choosenTimeA); 
-				} else {
-					//nothing no suitable neigh...
-				}
+				//reciprocate ties (if none present create a random tie)
+				reciprocateATie(choosenTimeA);
 			}
 
 			timeA = timeA - choosenTimeA;
@@ -317,10 +304,106 @@ public class Node {
 
 	}
 
+	private void reinforceExistingTie(double choosenTimeA){
+		if (outEdges.size()>0){
+			Collections.shuffle(outEdges);
+			Edge target = (Edge) outEdges.get(0);
+			target.setWeight(target.getWeight()+choosenTimeA);
+		} else {
+			reciprocateATie(choosenTimeA);
+		}
+	}
 
+	private void reciprocateATie(double choosenTimeA){
+
+		boolean recipTie = false;
+		for(Object in : inEdges){
+			boolean alreadyThere = false;
+			for(Object out: outEdges){
+				if( ((Edge)out).getTarget()==((Edge)in).getSource()  )alreadyThere=true;
+			}
+
+			if(alreadyThere = false && outEdges.size()>0){
+				Edge re = new Edge(this, ((Node)((Edge)in).getSource()),true, choosenTimeA);
+				context.add(re);
+				network.addEdge(re);
+				outEdges.add(re);
+				recipTie=true;
+				break;	
+			}
+		}
+
+		//if no recipt possible, create a new random tie
+		if (recipTie == false)createNewRandomTie(choosenTimeA);
+
+	}
+
+	private void createNewRandomTie(double choosenTimeA){
+		//agent chooses to create a new connection
+
+		//1.list all agents within specified social distance (Params.sdMax)
+		ArrayList<Node> nearMe = new ArrayList<Node>();
+		Envelope pointEnv = new Envelope();
+		pointEnv.init(this.getCoord());
+		pointEnv.expandBy(Params.maxSocialDistance);
+		java.util.List<Node> nodesNearMe = ModelSetup.getQuadtree().query(pointEnv);
+		for(Node n : nodesNearMe){
+			if(n.getCoord().distance(this.getCoord())<Params.maxSocialDistance && n!=this){
+				if(myNeighs.contains(n)==false){
+					nearMe.add(n);	
+				}
+
+			}
+		}
+
+		Collections.shuffle(nearMe);
+		Node indSelected = null; 
+		for(int i = 0; i<nearMe.size();i++){
+			Node potentialN = nearMe.get(i);
+			if( Math.abs(potentialN.age-this.age)<Params.ageDiffMax && outNodes.contains(potentialN)==false){
+				indSelected = potentialN;
+				break;
+			}
+		}
+
+		//2. allocate social time to this neighbour
+		if(indSelected!=null){
+			Edge re = new Edge(this, indSelected,true, choosenTimeA);
+			context.add(re);
+			network.addEdge(re);
+			outEdges.add(re);
+			//Coordinate[] coords = { ((Node)re.getSource()).getCoord(),((Node)re.getTarget()).getCoord()};
+			//LineString line = fac.createLineString(coords);
+			//myGeog.move(re,line);
+			//} else if (myEdges.size()>0){
+			//	Collections.shuffle(myEdges);
+			//	myEdges.get(0).setWeight(myEdges.get(0).getWeight()+choosenTimeA); 
+		} else {
+			//nothing no suitable neigh... time lost
+		}
+	}
 
 	private void generateMWealth (double wTime){
-		this.mWealth = this.workTime * this.workToWealthEfficiency;
+		this.mWealth = this.workTime * this.workToWealthEfficiency ;
+	}
+
+	private double density(Coordinate c){
+
+		//1.list all agents within specified social distance (Params.sdMax)
+		ArrayList<Node> nearMe = new ArrayList<Node>();
+		Envelope pointEnv = new Envelope();
+		pointEnv.init(c);
+		pointEnv.expandBy(Params.maxSocialDistance);
+		java.util.List<Node> nodesNearMe = ModelSetup.getQuadtree().query(pointEnv);
+
+		for(Node n : nodesNearMe){
+			if(n.getCoord().distance(c)<Params.maxSocialDistance && n!=this){
+				nearMe.add(n);	
+			}
+		}
+
+		return nearMe.size();
+
 	}
 
 	private void trimSocialTies(){
@@ -341,7 +424,25 @@ public class Node {
 
 	private double calculateCareTime(){
 
+		//int numbOfSmallChildren = 0;
+		//for(Node nn : this.kidList){
+		//	if(nn.getAge()<Params.ageWork)numbOfSmallChildren ++;
+		//}
+		//double careTime = numbOfSmallChildren * (Params.timePerChild) - calculateSupportReductionTime() - calculateMWealthReductionTime();
 		double careTime = this.numbChild * (Params.timePerChild) - calculateSupportReductionTime() - calculateMWealthReductionTime();
+		return Math.max(careTime,0);
+
+	}
+
+	private double calculateCareTimePlusONE(){
+
+		//int numbOfSmallChildren = 0;
+		//for(Node nn : this.kidList){
+		//	if(nn.getAge()<Params.ageWork)numbOfSmallChildren ++;
+		//}
+
+		//double careTime = (numbOfSmallChildren+1) * (Params.timePerChild) - calculateSupportReductionTime() - calculateMWealthReductionTime();
+		double careTime = (this.numbChild+1) * (Params.timePerChild) - calculateSupportReductionTime() - calculateMWealthReductionTime();
 		return Math.max(careTime,0);
 
 	}
@@ -349,15 +450,16 @@ public class Node {
 	private double calculateSupportReductionTime(){
 
 		double sumT = 0;
+		int count = inEdges.size();
 
-		for(Node n : myNeighs){
-			RepastEdge w = network.getEdge(n,this);
-			if(w!=null)sumT = sumT + w.getWeight(); 
+		for(Edge ee : inEdges){
+			sumT=sumT + ee.getWeight(); //in edges only
 		}
 
-		sumT = 1 - (sumT/(Params.alpha+sumT));
+		//sumT = (sumT/(Params.alpha+sumT));
 
-		return sumT;
+		return sumT*Params.alpha;
+		//return count*Params.alpha;
 		//return 0;
 	}
 
@@ -370,8 +472,6 @@ public class Node {
 
 		double desiredF = dFert, support = 0;
 		int count = 0;
-
-		//support (local)
 
 		//normative behaviour (local)
 		double localD = 0;
@@ -390,10 +490,8 @@ public class Node {
 			desiredF = desiredF + drift;
 		}
 
-
-		if(desiredF>Params.maxAgeRepro)desiredF=0;
-		if(childCareT>Params.crisisT)desiredF=0;
-
+		//if(desiredF>Params.maxAgeRepro)desiredF=0;
+		//if(childCareT>Params.crisisT)desiredF=0;
 
 		return desiredF;
 	}
@@ -415,36 +513,123 @@ public class Node {
 
 		//final desired age of first birth
 		if(count>0){
-			ageF= Math.max(ageF + Params.conformity * (ageF_norm - ageF) + drift,13);
+			ageF= Math.max(ageF + Params.conformity * (ageF_norm - ageF) + drift,Params.minAgeBirth);
 		} else {
-			ageF= Math.max(ageF + drift,13);
+			ageF= Math.max(ageF + drift,Params.minAgeBirth);
 		}
-		
+
 		return ageF;
+	}
+
+	private double calculateWorkLifeBalance(double ws){
+
+		double ws_norm = 0;
+		int count=0;
+		//normative aspect
+		for(Object n : myNeighs){
+			ws_norm = ws_norm + ((Node)n).getWorkLifeBalance();
+			count++;
+		}
+		ws_norm = ws_norm / (double)count;
+		
+		//drift aspect
+		double drift = (RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift);
+
+		//final desired age of first birth
+		if(count>0){
+			ws= Math.min(ws + Params.conformity * (ws_norm - ws) + drift,1);
+		} else {
+			ws= Math.min(ws + drift,1);
+		}
+
+		return Math.max(ws,0);
+
 	}
 
 
 	/*******************************************dispersal methods **********************************************/
 
-	public void init(){
+	public void init(Coordinate mCoord){
 		boolean retval =true;
 		int count=0;
-		Coordinate coordNew = null;
-		while(retval){
-			coordNew = new Coordinate(coord.x+RandomHelper.nextDoubleFromTo(-Params.dispersalRadius,Params.dispersalRadius),coord.y+RandomHelper.nextDoubleFromTo(-Params.dispersalRadius,Params.dispersalRadius));
+		Coordinate coordNew = chooseLocation(Params.maxSocialDistance);
+		//Coordinate coordNew = chooseRandomLocation(mCoord);
+		if(coordNew!=null){
+			space.moveTo(this, coordNew.x,coordNew.y);
+			this.coord = coordNew;
+		} else {
+			//System.out.println("something is wrong with the dispersal code!");
+		}
+	}
+	private Coordinate chooseRandomLocation(Coordinate m){
+		double angle = Math.random()*Math.PI*2;
+		double rDistance = Math.random()*Params.maxSocialDistance;
+		Coordinate testCoord = new Coordinate(m.x+Math.cos(angle)*rDistance,m.y+Math.sin(angle)*rDistance);
 
-			if(coordNew.x<Params.landscapeSize && coordNew.y<Params.landscapeSize && coordNew.x>0 && coordNew.y>0){
-				this.coord = coordNew;
+		while( (testCoord.x>0 && testCoord.y>0 && testCoord.x<Params.landscapeSize && testCoord.y<Params.landscapeSize) == false){
+			angle = Math.random()*Math.PI*2;
+			rDistance = Math.random()*Params.maxSocialDistance;
+			testCoord = new Coordinate(m.x+Math.cos(angle)*rDistance,m.y+Math.sin(angle)*rDistance);
+		}
+
+		return testCoord;
+	}
+	private Coordinate chooseLocation(double dist){
+
+		Coordinate startCoord = this.kinList.get(0).coord;
+		boolean retval=true;
+		Coordinate finalCoord = null;
+		int count = 0;
+
+		//if there is no room in the simulation the agent is not born (density effect?) 
+		if(dist>Params.landscapeSize){
+			this.dead=1;
+			retval=false;
+		}
+
+		while(retval){
+			double angle = Math.random()*Math.PI*2;
+			double rDistance = Math.random()*dist;
+			Coordinate testCoord = new Coordinate(startCoord.x+Math.cos(angle)*rDistance,startCoord.y+Math.sin(angle)*rDistance);
+			//System.out.println("dist "+ testCoord.distance(startCoord));
+
+			if( (testCoord.x<Params.landscapeSize && testCoord.y<Params.landscapeSize && testCoord.x>0 && testCoord.y>0)== true && freeSpace(testCoord)==true){
+				finalCoord = testCoord;
 				break;
 			}
 
 			count++;
 			if(count>10){
-				this.coord = this.kinList.get(0).coord;
-				System.out.println("couldn't generate new location from mother ... "+ coord.toString());
+				finalCoord = chooseLocation(dist*1.1);
+				break;
+				//System.out.println("couldn't generate new location from mother ... "+ coord.toString());
 			}
 		}
-		space.moveTo(this, coord.x,coord.y);
+		return finalCoord;
+	}
+
+	private boolean freeSpace(Coordinate c){
+
+		boolean free= true;
+
+		//1.list all agents within specified social distance (Params.sdMax)
+		ArrayList<Node> nearMe = new ArrayList<Node>();
+		Envelope pointEnv = new Envelope();
+		pointEnv.init(c);
+		pointEnv.expandBy(Params.maxSocialDistance);
+		java.util.List<Node> nodesNearMe = ModelSetup.getQuadtree().query(pointEnv);
+
+		for(Node n : nodesNearMe){
+			if(n.getCoord().distance(c)<Params.maxSocialDistance && n!=this){
+				nearMe.add(n);	
+			}
+		}
+
+		//System.out.println("near me : "+nearMe.size());
+		if(nearMe.size()>Params.maxDensity)free=false;
+
+		return free;
+
 	}
 
 
@@ -470,6 +655,9 @@ public class Node {
 	}
 	public double getAge(){
 		return age;
+	}
+	public double getWorkLifeBalance(){
+		return workLifeBalance;
 	}
 
 }
