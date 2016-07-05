@@ -21,13 +21,13 @@
     <float>0.2</float>
     <float>0.2</float>
   </color>
-  <redMethodName>getDesired_Fertility</redMethodName>
-  <greenMethodName>getDesired_Fertility</greenMethodName>
-  <blueMethodName>getDesired_Fertility</blueMethodName>
+  <redMethodName>getWorkLifeBalance</redMethodName>
+  <greenMethodName>getWorkLifeBalance</greenMethodName>
+  <blueMethodName>getWorkLifeBalance</blueMethodName>
   <colorMax>
-    <float>10.0</float>
-    <float>5.0</float>
-    <float>2.0</float>
+    <float>1.0</float>
+    <float>1.0</float>
+    <float>1.0</float>
   </colorMax>
   <colorMin>
     <float>0.0</float>
@@ -35,8 +35,8 @@
     <float>0.0</float>
   </colorMin>
   <colorScale>
-    <float>1.0</float>
-    <float>1.0</float>
-    <float>1.0</float>
+    <float>5.0</float>
+    <float>2.0</float>
+    <float>0.5</float>
   </colorScale>
 </repast.simphony.visualization.editedStyle.DefaultEditedStyleData2D>

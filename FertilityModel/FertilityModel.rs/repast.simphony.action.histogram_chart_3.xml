@@ -21,7 +21,7 @@
   <showLegend>true</showLegend>
   <histType>STATIC</histType>
   <binCount>10</binCount>
-  <sourceId>Desired_Fertility</sourceId>
+  <sourceId>NumberChildren</sourceId>
   <outOfRange>IGNORE</outOfRange>
   <min>0.0</min>
   <max>10.0</max>

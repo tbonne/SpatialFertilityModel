@@ -1,5 +1,5 @@
 <repast.simphony.data2.engine.DataSetDescriptor>
-  <name>Balance</name>
+  <name>Histogram</name>
   <type>NON_AGGREGATE</type>
   <sourceType>fertilityModel.Node</sourceType>
   <inclTick>true</inclTick>
@@ -12,16 +12,16 @@
     <pType>LAST</pType>
     <duration>-1.0</duration>
     <frequency>REPEAT</frequency>
-    <hashCode>-292325795</hashCode>
+    <hashCode>0</hashCode>
   </scheduleParams>
   <atEnd>false</atEnd>
   <methodDataSources class="linked-hash-map">
     <entry>
-      <string>WorkLifeBalance</string>
+      <string>NumberChildren</string>
       <repast.simphony.data2.engine.MethodDataSourceDefinition>
-        <id>WorkLifeBalance</id>
+        <id>NumberChildren</id>
         <className>fertilityModel.Node</className>
-        <methodName>getWorkLifeBalance</methodName>
+        <methodName>getNumberChildren</methodName>
       </repast.simphony.data2.engine.MethodDataSourceDefinition>
     </entry>
   </methodDataSources>

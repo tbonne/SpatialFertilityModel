@@ -101,8 +101,9 @@ public class Node {
 		timeSinceLastBirth=0;
 		network=net;
 		age=0;
-		desired_Fertility = motherNode.getDesired_Fertility();
+		//desired_Fertility = motherNode.getDesired_Fertility();
 		desired_ageFirstBirth = motherNode.getAge_FirstBirth(); 
+		desired_ageFirstBirth = Math.min(Math.max(motherNode.getAge_FirstBirth()+(RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift_ageFirstBirth),Params.minAgeBirth),Params.maxAgeRepro);
 		coord = coordinate;
 		this.space=space;
 
@@ -110,7 +111,7 @@ public class Node {
 		freeTime=1;
 		workTime=0;
 		careTime=0;
-		workLifeBalance=Math.min(Math.max(motherNode.workLifeBalance+(RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift),0),1);
+		workLifeBalance=Math.min(Math.max(motherNode.workLifeBalance+(RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift_work),0),1);
 		mWealth=0;
 		workToWealthEfficiency = Params.workToWealthEfficiency;
 
@@ -170,24 +171,21 @@ public class Node {
 		double childCareT = allocateTime();
 
 		//Update desired Age of First Birth and desired Fertility
-		if(age>=Params.ageSocial){
-			if(numbChild==0)desired_ageFirstBirth = calculateAgeFirstBirth(desired_ageFirstBirth);
-			desired_Fertility = calculateDesiredFertility(desired_Fertility, this.careTime); 
-			this.workLifeBalance = calculateWorkLifeBalance(this.workLifeBalance);
-		}
+		//if(age>=Params.ageSocial){
+			//if(numbChild==0)desired_ageFirstBirth = calculateAgeFirstBirth(desired_ageFirstBirth);
+			//desired_Fertility = calculateDesiredFertility(desired_Fertility, this.careTime); 
+			//this.workLifeBalance = calculateWorkLifeBalance(this.workLifeBalance);
+		//}
 
 
 		//make fertility choices
 		if(this.age>=desired_ageFirstBirth && this.age<Params.maxAgeRepro){
 
 			////Is a new child born? (deterministic right now...)
-			if(desired_Fertility>numbChild+1 && timeSinceLastBirth>Params.minInterBirthPeriod ){
+			if(timeSinceLastBirth>Params.minInterBirthPeriod ){ //desired_Fertility>numbChild+1 &&
 
 				if(checkTimeAvailability() ){
 					numbChild++;
-					if(numbChild>1){
-						//System.out.println("sss");
-					}
 					if(numbChild == 1)this.age_FirstBirth=this.age;
 					Node newNode = new Node(context, space,this.coord,network,this,myGeog);
 					newNode.init(this.coord);
@@ -197,10 +195,10 @@ public class Node {
 					//System.out.println("birth occured : "+desired_Fertility + "  "+ newNode.toString());
 
 					//else adjust until it is possible to meet desired fertility
-				} else{
-					this.workLifeBalance= Math.min(1,Math.max(this.workLifeBalance + RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift_work,0));
-					this.desired_Fertility=this.desired_Fertility-Params.desiredFertilityDecrease; 
-				}
+				} //else{
+					//this.workLifeBalance= Math.min(1,Math.max(this.workLifeBalance + RandomHelper.nextDoubleFromTo(-1, 1)*Params.rDrift_work,0));
+					//this.desired_Fertility=this.desired_Fertility-Params.desiredFertilityDecrease; 
+				//}
 			}
 
 			////random chance of a birth
@@ -221,7 +219,7 @@ public class Node {
 		if(age>Params.ageSocial)trimSocialTies();
 
 		//finalize node for next step
-		if(age>Params.maxAge){
+		if(age>Params.maxAge || Math.random()<Params.probDeath){
 			dead=1;
 			myEdges = IteratorUtils.toList(network.getEdges(this).iterator());
 		}
@@ -301,7 +299,6 @@ public class Node {
 			timeA = timeA - choosenTimeA;
 
 		}
-
 	}
 
 	private void reinforceExistingTie(double choosenTimeA){
@@ -643,7 +640,9 @@ public class Node {
 	public double getDesired_Fertility(){
 		return desired_Fertility;
 	}
-
+	public double getNumberChildren(){
+		return numbChild;
+	}
 	public int getAge_FirstBirth(){
 		return age_FirstBirth;
 	}

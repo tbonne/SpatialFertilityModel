@@ -54,6 +54,8 @@ public class Params {
 	
 	public final static double crisisT = 0.5;
 	public final static double rDrift_work = 0.1; 						//max amount of random drift in fertility desire
+	public final static double rDrift_ageFirstBirth = 2; 						//max amount of random drift in fertility desire
+	public static double probDeath = 0.01;
 	
 
 	//assuming asymetric network ties: individuals can be connected to someone and the individual not be connected back (could change)
@@ -77,6 +79,7 @@ public class Params {
 			socialDecrease = (Double)p.getValue("socialDecrease");
 			dispersalRadius = (Double)p.getValue("dispersalRadius");
 			alpha = (Double)p.getValue("alpha");
+			probDeath = (Double)p.getValue("probDeath");
 			
 			//numberOfNodes = (Integer)p.getValue("numbNodes");
 			//radiusOfConnections = (Integer)p.getValue("radiusC");
