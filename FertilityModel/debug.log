@@ -218,3 +218,28 @@ Caused by: java.lang.ClassNotFoundException: Double
 	at java.lang.Class.forName(Unknown Source)
 	at repast.simphony.parameter.ParametersParser.startElement(ParametersParser.java:87)
 	... 37 more
+WARN  [Thread-9] 2016-06-20 11:16:47,863 repast.simphony.ui.GUIScheduleRunner - Caught InterruptedException when running simulation, unpausing.
+java.lang.InterruptedException
+	at java.lang.Object.wait(Native Method)
+	at java.lang.Object.wait(Unknown Source)
+	at repast.simphony.ui.GUIScheduleRunner.go(GUIScheduleRunner.java:137)
+	at repast.simphony.ui.GUIScheduleRunner$ScheduleLoopRunnable.run(GUIScheduleRunner.java:48)
+	at java.lang.Thread.run(Unknown Source)
+FATAL [Thread-8] 2016-06-20 15:38:22,464 repast.simphony.ui.GUIScheduleRunner - RunTimeException when running the schedule
+Current tick (136.0)
+java.lang.RuntimeException: java.lang.reflect.InvocationTargetException
+	at repast.simphony.engine.schedule.CallBackAction.execute(CallBackAction.java:129)
+	at repast.simphony.engine.schedule.DefaultAction.execute(DefaultAction.java:38)
+	at repast.simphony.engine.schedule.ScheduleGroup.executeList(ScheduleGroup.java:205)
+	at repast.simphony.engine.schedule.ScheduleGroup.execute(ScheduleGroup.java:231)
+	at repast.simphony.engine.schedule.Schedule.execute(Schedule.java:352)
+	at repast.simphony.ui.GUIScheduleRunner$ScheduleLoopRunnable.run(GUIScheduleRunner.java:52)
+	at java.lang.Thread.run(Unknown Source)
+Caused by: java.lang.reflect.InvocationTargetException
+	at fertilityModel.Executor$$FastClassByCGLIB$$8bec12c2.invoke(<generated>)
+	at net.sf.cglib.reflect.FastMethod.invoke(FastMethod.java:53)
+	at repast.simphony.engine.schedule.CallBackAction.execute(CallBackAction.java:127)
+	... 6 more
+Caused by: java.lang.NullPointerException
+	at fertilityModel.Executor.updateNodes(Executor.java:87)
+	... 9 more

@@ -40,13 +40,13 @@
 									
 		/>
 				<parameter name="conformity" displayName="Behav: Rate of conformity in desires" type="double" 
-						defaultValue="0.05" 
+						defaultValue="0.01" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
 									
 		/>
 				<parameter name="timePerChild" displayName="Child: Cost in time per child" type="double" 
-						defaultValue="0.9" 
+						defaultValue="1.0" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
 									
@@ -58,13 +58,19 @@
 									
 		/>
 				<parameter name="ageDiffMax" displayName="Social: max difference in ages to for ties" type="int" 
-						defaultValue="10" 
+						defaultValue="100" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$IntConverter"
 									
 		/>
+				<parameter name="socialDecrease" displayName="Social: decay rate of ties" type="double" 
+						defaultValue="0.1" 
+						isReadOnly="false" 
+						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
+									
+		/>
 				<parameter name="workToWealthEfficiency" displayName="Behav: %working reduces child care" type="double" 
-						defaultValue="0.10" 
+						defaultValue="2" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
 									
@@ -75,8 +81,8 @@
 						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
 									
 		/>
-		<parameter name="alpha" displayName="Social: reduction in child care due to social supp" type="double" 
-						defaultValue="1" 
+				<parameter name="alpha" displayName="Behav: %social ties reduces child care" type="double" 
+						defaultValue="0" 
 						isReadOnly="false" 
 						converter="repast.simphony.parameter.StringConverterFactory$DoubleConverter"
 									

@@ -17,9 +17,9 @@ public class Params {
 	public static int landscapeSize = 1000;
 	
 	//nodes
-	public static int initalNodes = 50;
+	public static int initalNodes = 5;
 	public static int maxAge = 80;
-	public static int initialEdges = 50;
+	public static int initialEdges = 5;
 	
 	//nodes fertility
 	public final static double backgroundFertility = 0.0;   	//random chance of having a baby
@@ -32,14 +32,17 @@ public class Params {
 	//public final static double rDrift_fertility = 0.01; 						//max amount of random drift in fertility desire
 	//public final static double rDrift_ageOfFirstBirth = 0.01; 					//max amount of random drift in age at first birth
 	public static double conformity = 0.05; 								//rate of adjustment to the average within an individuals social network (per year max)
+	public static final int minAgeBirth = 13;						//minimum age of first reproduction
+	public static double desiredFertilityDecrease = 0.1;
 	
 	//nodes social network
 	public static double maxSocialDistance = 30;
 	public static int ageDiffMax = 10;
 	public final static double minEdgeWeight=0.1;
-	public final static double alpha=1;
+	public static double alpha=1;
 	public final static double timeResolution = 0.1; 			//resolution to divide the time when randomly attributing it to social connections
-	public final static double socialDecrease = 0.05;			//rate at which social ties decrease
+	public static double socialDecrease = 0.1;			//rate at which social ties decrease
+	public final static int maxSocialTies = 10;
 	
 	//node economy
 	public static double workToWealthEfficiency = 0.1;		//each unit of work time equals X number of units of material wealth
@@ -47,8 +50,9 @@ public class Params {
 	
 	//spatial distribution
 	public static double dispersalRadius = 30;
+	public static double maxDensity = 5; 					//maximum number of agents within maxSocialDistance parameter when choosing a location to disperse to.  
 	
-	public final static double crisisT = 0.6;
+	public final static double crisisT = 0.5;
 	public final static double rDrift_work = 0.1; 						//max amount of random drift in fertility desire
 	
 
@@ -70,8 +74,9 @@ public class Params {
 			maxSocialDistance = (Double)p.getValue("maxSocialDistance");
 			ageDiffMax = (Integer)p.getValue("ageDiffMax");
 			workToWealthEfficiency = (Double)p.getValue("workToWealthEfficiency");
-			//workLifeBalanceVar = (Double)p.getValue("workLifeBalanceVar");
+			socialDecrease = (Double)p.getValue("socialDecrease");
 			dispersalRadius = (Double)p.getValue("dispersalRadius");
+			alpha = (Double)p.getValue("alpha");
 			
 			//numberOfNodes = (Integer)p.getValue("numbNodes");
 			//radiusOfConnections = (Integer)p.getValue("radiusC");
